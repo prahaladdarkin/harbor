@@ -36,6 +36,7 @@ import (
 	"github.com/goharbor/harbor/src/pkg/scan/all"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scan"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scanner"
+	"github.com/goharbor/harbor/src/pkg/scan/postprocessors"
 	"github.com/goharbor/harbor/src/pkg/scan/report"
 	v1 "github.com/goharbor/harbor/src/pkg/scan/rest/v1"
 	"github.com/goharbor/harbor/src/pkg/scan/vuln"
@@ -159,7 +160,7 @@ func (bc *basicController) Scan(ctx context.Context, artifact *ar.Artifact, opti
 		return errors.New("nil artifact to scan")
 	}
 
-	r, err := bc.sc.GetRegistrationByProject(ctx, artifact.ProjectID)
+	r, err := bc.sc.GetRegistrationByProject(artifact.ProjectID)
 	if err != nil {
 		return errors.Wrap(err, "scan controller: scan")
 	}
@@ -316,7 +317,7 @@ func (bc *basicController) GetReport(ctx context.Context, artifact *ar.Artifact,
 	}
 
 	// Get current scanner settings
-	r, err := bc.sc.GetRegistrationByProject(ctx, artifact.ProjectID)
+	r, err := bc.sc.GetRegistrationByProject(artifact.ProjectID)
 	if err != nil {
 		return nil, errors.Wrap(err, "scan controller: get report")
 	}
@@ -495,6 +496,7 @@ func (bc *basicController) GetScanLog(uuid string) ([]byte, error) {
 
 // HandleJobHooks ...
 func (bc *basicController) HandleJobHooks(trackID string, change *job.StatusChange) error {
+	log.Infof("Executing HandleJobHook for track ID : %s", trackID)
 	if len(trackID) == 0 {
 		return errors.New("empty track ID")
 	}
@@ -552,6 +554,20 @@ func (bc *basicController) HandleJobHooks(trackID string, change *job.StatusChan
 			return errors.Wrap(err, "scan controller: handle job hook")
 		}
 
+		//at this point the scan is complete and the JSON raw report data is available.
+		//convert it to the v2 report format and persist into the database.
+		//get the complete report definition and then convert to the new schema
+		report, err := bc.manager.Get(rpl[0].UUID)
+		if err != nil {
+			return errors.Wrapf(err, "scan controller: handle job hook report conversion failure for report %s", rpl[0].UUID)
+		}
+		log.Infof("Converting report ID %s to  the new V2 schema", rpl[0].UUID)
+		rc := postprocessors.NewScanReportV1ToV2Converter()
+		_, err = rc.Convert(report)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to convert vulnerability data to new schema for report UUID : %s", rpl[0].UUID)
+		}
+		log.Infof("Converted report ID %s to the new V2 schema", rpl[0].UUID)
 		return nil
 	}
 
