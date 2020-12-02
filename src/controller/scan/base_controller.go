@@ -37,6 +37,7 @@ import (
 	sca "github.com/goharbor/harbor/src/pkg/scan"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scan"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scanner"
+	"github.com/goharbor/harbor/src/pkg/scan/postprocessors"
 	"github.com/goharbor/harbor/src/pkg/scan/report"
 	v1 "github.com/goharbor/harbor/src/pkg/scan/rest/v1"
 	"github.com/goharbor/harbor/src/pkg/scan/vuln"
@@ -86,6 +87,8 @@ type basicController struct {
 
 	execMgr task.ExecutionManager
 	taskMgr task.Manager
+	// Converter for V1 report to V2 report
+	reportV1ToV2Converter postprocessors.ScanReportV1Converter
 }
 
 // NewController news a scan API controller
@@ -125,6 +128,8 @@ func NewController() Controller {
 
 		execMgr: task.ExecMgr,
 		taskMgr: task.Mgr,
+		// Get the scan V1 to V2 report converters
+		reportV1ToV2Converter: postprocessors.NewScanReportV1ToV2Converter(),
 	}
 }
 
@@ -597,7 +602,20 @@ func (bc *basicController) UpdateReport(ctx context.Context, report *sca.CheckIn
 		return errors.Wrap(err, "scan controller: handle job hook")
 	}
 
-	return nil
+	// at this point the scan is complete and the JSON raw report data is available.
+	// convert it to the v2 report format and persist into the database.
+	// get the complete report definition and then convert to the new schema
+	report, err = bc.manager.Get(rpl[0].UUID)
+	if err != nil {
+		return errors.Wrapf(err, "scan controller: handle job hook report conversion failure for report %s", rpl[0].UUID)
+	}
+	log.Infof("Converting report ID %s to  the new V2 schema", rpl[0].UUID)
+	_, err = bc.reportV1ToV2Converter.Convert(report)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to convert vulnerability data to new schema for report UUID : %s", rpl[0].UUID)
+	}
+	log.Infof("Converted report ID %s to the new V2 schema", rpl[0].UUID)
+		return nil
 }
 
 // DeleteReports ...

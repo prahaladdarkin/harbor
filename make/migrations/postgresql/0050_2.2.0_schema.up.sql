@@ -455,3 +455,44 @@ BEGIN
     END LOOP;
 END $$;
 
+
+/*
+Common vulnerability reporting schema.
+Github proposal link : https://github.com/goharbor/community/pull/145
+*/
+
+-- --------------------------------------------------
+--  Table Structure for `main.VulnerabilityRecord`
+-- --------------------------------------------------
+CREATE TABLE IF NOT EXISTS "vulnerability_record_v2" (
+    "id" serial NOT NULL PRIMARY KEY,
+    "cve_id" text NOT NULL DEFAULT '' ,
+    "registration_uuid" text NOT NULL DEFAULT '',
+    "digest" text NOT NULL DEFAULT '' ,
+    "report_uuid" text NOT NULL DEFAULT '' ,
+    "package" text NOT NULL DEFAULT '' ,
+    "package_version" text NOT NULL DEFAULT '' ,
+    "package_type" text NOT NULL DEFAULT '' ,
+    "severity" text NOT NULL DEFAULT '' ,
+    "fixed_version" text,
+    "urls" text,
+    "cve3_score" double precision,
+    "cve2_score" double precision,
+    "cvss3_vector" text,
+    "cvss2_vector" text,
+    "description" text,
+    "cwe_ids" text,
+    "vendorattributes" json,
+    UNIQUE ("cve_id", "registration_uuid", "package", "package_version", "digest")
+);
+
+-- --------------------------------------------------
+--  Table Structure for `main.ReportVulnerabilityRecord`
+-- --------------------------------------------------
+CREATE TABLE IF NOT EXISTS "report_vulnerability_record_v2" (
+    "id" serial NOT NULL PRIMARY KEY,
+    "report_uuid" text NOT NULL DEFAULT '' ,
+    "vuln_record_id" bigint NOT NULL DEFAULT 0 ,
+    UNIQUE ("report_uuid", "vuln_record_id")
+);
+

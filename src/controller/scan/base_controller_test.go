@@ -42,6 +42,7 @@ import (
 	scannertesting "github.com/goharbor/harbor/src/testing/controller/scanner"
 	ormtesting "github.com/goharbor/harbor/src/testing/lib/orm"
 	"github.com/goharbor/harbor/src/testing/mock"
+	postprocessorstesting "github.com/goharbor/harbor/src/testing/pkg/scan/postprocessors"
 	reporttesting "github.com/goharbor/harbor/src/testing/pkg/scan/report"
 	tasktesting "github.com/goharbor/harbor/src/testing/pkg/task"
 	"github.com/stretchr/testify/assert"
@@ -65,6 +66,7 @@ type ControllerTestSuite struct {
 	reportMgr *reporttesting.Manager
 	ar        artifact.Controller
 	c         Controller
+	reportConverter *postprocessorstesting.ScanReportV1ToV2Converter
 }
 
 // TestController is the entry point of ControllerTestSuite.
@@ -279,6 +281,7 @@ func (suite *ControllerTestSuite) SetupSuite() {
 
 		execMgr: suite.execMgr,
 		taskMgr: suite.taskMgr,
+		reportV1ToV2Converter: &postprocessorstesting.ScanReportV1ToV2Converter{},
 	}
 }
 
