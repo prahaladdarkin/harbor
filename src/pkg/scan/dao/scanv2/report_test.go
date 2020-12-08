@@ -216,7 +216,6 @@ func (suite *ReportTestSuite) cleanUpAdditionalData(reportID string, scannerID s
 	delCount, err := DeleteAllVulnerabilityRecordsForReport(reportID)
 	require.NoError(suite.T(), err, "Failed to cleanup records")
 	require.True(suite.T(), delCount > 0, "Failed to delete records")
-	//DeleteVulnerabilityRecordsForScanner(scannerID)
 }
 
 func generateVulnerabilityRecordsForReport(reportUUID string, registrationUUID string, numRecords int) []*VulnerabilityRecord {
