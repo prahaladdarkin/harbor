@@ -213,8 +213,10 @@ func (suite *ReportTestSuite) insertVulnRecordForReport(reportUUID string, vr *V
 func (suite *ReportTestSuite) cleanUpAdditionalData(reportID string, scannerID string) {
 	err := scan.DeleteReport(reportID)
 	require.NoError(suite.T(), err)
-	DeleteAllVulnerabilityRecordsForReport(reportID)
-	DeleteVulnerabilityRecordsForScanner(scannerID)
+	delCount, err := DeleteAllVulnerabilityRecordsForReport(reportID)
+	require.NoError(suite.T(), err, "Failed to cleanup records")
+	require.True(suite.T(), delCount > 0, "Failed to delete records")
+	//DeleteVulnerabilityRecordsForScanner(scannerID)
 }
 
 func generateVulnerabilityRecordsForReport(reportUUID string, registrationUUID string, numRecords int) []*VulnerabilityRecord {

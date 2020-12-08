@@ -6,6 +6,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/goharbor/harbor/src/common/dao"
+	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scan"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scanv2"
 	v1 "github.com/goharbor/harbor/src/pkg/scan/rest/v1"
@@ -184,10 +185,16 @@ func (suite *TestReportConverterSuite) SetupSuite() {
 func (suite *TestReportConverterSuite) TearDownTest() {
 	// No delete method defined in manager as no requirement,
 	// so, to clear env, call dao method here
-	err := scan.DeleteReport(suite.rpUUID)
-	require.NoError(suite.T(), err)
-	delCount, err := scanv2.DeleteAllVulnerabilityRecordsForReport(suite.rpUUID)
-	require.True(suite.T(), delCount > 0, "Failed to delete vulnerability records")
+	reports, err := scan.ListReports(&q.Query{})
+	require.True(suite.T(), err == nil, "Failed to delete vulnerability records")
+	for _, report := range reports {
+		err := scan.DeleteReport(report.UUID)
+		require.NoError(suite.T(), err)
+		delCount, err := scanv2.DeleteAllVulnerabilityRecordsForReport(suite.rpUUID)
+		require.NoError(suite.T(), err, "Failed to delete vulnerability records")
+		require.True(suite.T(), delCount > 0, "Failed to delete vulnerability records")
+	}
+
 }
 
 // TestConvertReport tests the report conversion logic
