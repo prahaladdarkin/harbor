@@ -20,6 +20,7 @@ import (
 
 	"github.com/goharbor/harbor/src/common/dao"
 	"github.com/goharbor/harbor/src/jobservice/job"
+	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/scan/dao/scan"
 	v1 "github.com/goharbor/harbor/src/pkg/scan/rest/v1"
 	"github.com/stretchr/testify/require"
@@ -118,16 +119,16 @@ func (suite *ReportTestSuite) SetupTest() {
 
 // TearDownTest clears enf for test case.
 func (suite *ReportTestSuite) TearDownTest() {
-	err := scan.DeleteReport("uuid")
+	/*
+		err := scan.DeleteReport("uuid")
+		require.NoError(suite.T(), err)
+		DeleteAllVulnerabilityRecordsForReport("uuid")
+		DeleteVulnerabilityRecordsForScanner("scannerId1")*/
+	reports, err := scan.ListReports(&q.Query{})
 	require.NoError(suite.T(), err)
-	DeleteAllVulnerabilityRecordsForReport("uuid")
-	DeleteVulnerabilityRecordsForScanner("scannerId1")
-
-	err = scan.DeleteReport("uuid1")
-	require.NoError(suite.T(), err)
-	DeleteAllVulnerabilityRecordsForReport("uuid1")
-	DeleteVulnerabilityRecordsForScanner("scannerId2")
-
+	for _, report := range reports {
+		suite.cleanUpAdditionalData(report.UUID, report.RegistrationUUID)
+	}
 }
 
 // TestVulnerabilityRecordsListForReport tests listing of vulnerability record for reports
@@ -185,6 +186,7 @@ func (suite *ReportTestSuite) TestVulnerabilityRecordsListForReport() {
 
 // TestGetVulnerabilityRecordsForScanner gets vulnerability records for scanner
 func (suite *ReportTestSuite) TestGetVulnerabilityRecordsForScanner() {
+
 	vulns, err := GetVulnerabilityRecordsForScanner("scannerId1")
 	require.NoError(suite.T(), err, "Error when fetching vulnerability records for report")
 	require.True(suite.T(), len(vulns) > 0)
@@ -210,6 +212,13 @@ func (suite *ReportTestSuite) insertVulnRecordForReport(reportUUID string, vr *V
 	id, err := InsertVulnerabilityDataForReport(reportUUID, vr)
 	require.NoError(suite.T(), err)
 	require.True(suite.T(), id > 0, "Failed to insert vulnerability record row for report %s", reportUUID)
+}
+
+func (suite *ReportTestSuite) cleanUpAdditionalData(reportID string, scannerID string) {
+	err := scan.DeleteReport(reportID)
+	require.NoError(suite.T(), err)
+	DeleteAllVulnerabilityRecordsForReport(reportID)
+	DeleteVulnerabilityRecordsForScanner(scannerID)
 }
 
 func generateVulnerabilityRecordsForReport(reportUUID string, registrationUUID string, numRecords int) []*VulnerabilityRecord {
