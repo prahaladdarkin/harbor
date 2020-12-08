@@ -119,11 +119,7 @@ func (suite *ReportTestSuite) SetupTest() {
 
 // TearDownTest clears enf for test case.
 func (suite *ReportTestSuite) TearDownTest() {
-	/*
-		err := scan.DeleteReport("uuid")
-		require.NoError(suite.T(), err)
-		DeleteAllVulnerabilityRecordsForReport("uuid")
-		DeleteVulnerabilityRecordsForScanner("scannerId1")*/
+
 	reports, err := scan.ListReports(&q.Query{})
 	require.NoError(suite.T(), err)
 	for _, report := range reports {
